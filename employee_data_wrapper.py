@@ -22,56 +22,166 @@ def render_employee_data_management():
         try:
             os.chdir(employee_path)
             
-            # Read the main_app.py file content
-            main_app_path = os.path.join(employee_path, 'main_app.py')
-            if not os.path.exists(main_app_path):
-                st.error("❌ Employee main_app.py not found")
-                return
+            # Instead of executing the entire main_app.py, let's import the panels directly
+            # and recreate the interface manually to avoid st.set_page_config conflicts
             
-            with open(main_app_path, 'r', encoding='utf-8') as f:
-                app_content = f.read()
+            # Import the panel functions directly
+            from employee_main_panel import show_employee_panel
+            from employee_statistics_panel import show_employee_statistics_panel  
+            from employee_validation_panel import show_employee_validation_panel
+            from employee_dashboard_panel import show_employee_dashboard_panel
+            from employee_admin_panel import show_employee_admin_panel
             
-            # Remove or comment out st.set_page_config lines to avoid conflicts
-            lines = app_content.split('\n')
-            modified_lines = []
+            # Initialize session state for employee system
+            if 'state' not in st.session_state:
+                st.session_state.state = {}
             
-            for line in lines:
-                if 'st.set_page_config' in line and not line.strip().startswith('#'):
-                    # Comment out the st.set_page_config line
-                    modified_lines.append('# ' + line + '  # Commented out by wrapper')
-                else:
-                    modified_lines.append(line)
+            state = st.session_state.state
             
-            modified_content = '\n'.join(modified_lines)
+            # Recreate the employee interface (based on the main_app.py structure)
             
-            # Create a local namespace for execution
-            local_namespace = {
-                '__name__': '__main__',
-                '__file__': main_app_path,
-                'st': st,
-                'sys': sys,
-                'os': os,
-                'pd': None  # Will be imported in the executed code if needed
-            }
+            # Custom CSS for better display (from main_app.py)
+            st.markdown("""
+                <style>
+                    .stDataFrame {
+                        width: 100% !important;
+                    }
+                    .stDataFrame div[data-testid="stHorizontalBlock"] {
+                        overflow-x: auto;
+                    }
+                    .stDataFrame table {
+                        width: 100%;
+                        font-size: 14px;
+                    }
+                    .stDataFrame th {
+                        font-weight: bold !important;
+                        background-color: #f0f2f6 !important;
+                    }
+                    .stDataFrame td {
+                        white-space: nowrap;
+                        max-width: 300px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
             
-            # Execute the modified content
-            exec(modified_content, local_namespace)
+            # Sidebar navigation
+            st.sidebar.title("👥 Employee Data Management")
+            st.sidebar.markdown("---")
+            
+            panel = st.sidebar.radio(
+                "**Choose Panel:**",
+                [
+                    "🏠 Employee Processing",
+                    "📊 Statistics & Detective", 
+                    "✅ Data Validation",
+                    "📈 Dashboard",
+                    "⚙️ Admin Configuration"
+                ],
+                key="employee_panel_selection"
+            )
+            
+            # Add quick stats in sidebar
+            st.sidebar.markdown("---")
+            st.sidebar.markdown("**📋 Quick Status:**")
+            
+            # Check data status
+            pa_files_loaded = sum(1 for file_key in ['PA0001', 'PA0002', 'PA0006', 'PA0105'] 
+                                 if state.get(f'source_{file_key.lower()}') is not None)
+            output_generated = 'generated_employee_files' in state and state['generated_employee_files']
+            
+            st.sidebar.write(f"📂 PA Files: {pa_files_loaded}/4 loaded")
+            st.sidebar.write(f"📤 Output: {'✅ Generated' if output_generated else '❌ Not yet'}")
+            
+            if pa_files_loaded >= 2:
+                st.sidebar.success("✅ Ready to process")
+            else:
+                st.sidebar.error("❌ Need PA0001 & PA0002")
+            
+            st.sidebar.markdown("---")
+            st.sidebar.markdown("**💡 Quick Tips:**")
+            st.sidebar.info("1. Upload PA files first\n2. Process employee data\n3. Validate results\n4. Analyze statistics")
+            
+            # Show selected panel with performance optimization
+            try:
+                if panel == "🏠 Employee Processing":
+                    show_employee_panel(state)
+                elif panel == "📊 Statistics & Detective":
+                    # Add warning for large datasets
+                    pa0002_data = state.get('source_pa0002')
+                    if pa0002_data is not None and len(pa0002_data) > 10000:
+                        st.warning("⚠️ Large dataset detected. Statistics panel may take a moment to load...")
+                    
+                    with st.spinner("Loading statistics..."):
+                        show_employee_statistics_panel(state)
+                elif panel == "✅ Data Validation":
+                    with st.spinner("Running validation checks..."):
+                        show_employee_validation_panel(state)
+                elif panel == "📈 Dashboard":
+                    show_employee_dashboard_panel(state)
+                elif panel == "⚙️ Admin Configuration":
+                    show_employee_admin_panel()
+            
+            except Exception as e:
+                st.error(f"❌ **Panel Error:** {str(e)}")
+                st.info("**What to do:** Try refreshing the page or switching to a different panel")
+                
+                # Show error details in expander
+                with st.expander("🔍 Technical Details", expanded=False):
+                    st.code(str(e))
+                    if st.button("🔄 Reset Session", key="reset_employee_session"):
+                        for key in list(st.session_state.keys()):
+                            if 'state' in key:
+                                del st.session_state[key]
+                        st.rerun()
+            
+            # Footer
+            st.sidebar.markdown("---")
+            st.sidebar.caption("💻 Employee Data Management System v2.0")
             
         finally:
             # Always restore original working directory and path
             os.chdir(original_cwd)
             sys.path = original_path
         
-    except Exception as e:
-        st.error(f"❌ **Employee System Error:** {str(e)}")
+    except ImportError as e:
+        st.error(f"❌ **Employee System Import Error:** {str(e)}")
         st.info("**Troubleshooting:**")
         st.write("1. Ensure `new_employee/main_app.py` exists")
         st.write("2. Check that all employee panel files are in `new_employee/panels/`")
         st.write("3. Verify the employee system structure")
+        st.write("4. Ensure required panel files exist:")
+        
+        required_panels = [
+            "employee_main_panel.py",
+            "employee_statistics_panel.py", 
+            "employee_validation_panel.py",
+            "employee_dashboard_panel.py",
+            "employee_admin_panel.py"
+        ]
+        
+        employee_path = os.path.join(os.getcwd(), 'new_employee')
+        panels_path = os.path.join(employee_path, 'panels')
+        
+        for panel in required_panels:
+            panel_path = os.path.join(panels_path, panel)
+            if os.path.exists(panel_path):
+                st.success(f"✅ {panel}")
+            else:
+                st.error(f"❌ {panel}")
+        
+        with st.expander("🔍 Technical Details"):
+            st.code(f"Import Error: {str(e)}")
+            st.write(f"**Looking for employee system at:** `{employee_path}`")
+            st.write(f"**Looking for panels at:** `{panels_path}`")
+    
+    except Exception as e:
+        st.error(f"❌ **Employee System Error:** {str(e)}")
+        st.info("Please check the employee system configuration and try again.")
         
         with st.expander("🔍 Technical Details"):
             st.code(f"Error Type: {type(e).__name__}\nError Message: {str(e)}")
-            st.write(f"**Looking for employee system at:** `{employee_path}`")
 
 def get_employee_system_status():
     """Get the status of the Employee Data Management System"""
