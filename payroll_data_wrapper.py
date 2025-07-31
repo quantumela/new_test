@@ -77,19 +77,24 @@ def render_payroll_data_management():
             st.sidebar.title("Payroll Data Management")
             st.sidebar.markdown("---")
             
-            # Admin mode toggle with EXACT password logic (same as Foundation)
-            admin_enabled = st.checkbox("Admin Mode", help="Enable configuration options", key="payroll_admin_mode")
+            # Admin mode toggle with improved UX
+            current_admin_mode = st.session_state.payroll_state.get('admin_mode', False)
             
-            if admin_enabled:
-                # Check if running locally or if admin password is configured (EXACT logic from Foundation)
+            # Show checkbox as checked if already authenticated
+            admin_enabled = st.checkbox("Admin Mode", 
+                                      value=current_admin_mode, 
+                                      help="Enable configuration options", 
+                                      key="payroll_admin_mode")
+            
+            if admin_enabled and not current_admin_mode:
+                # User wants admin mode but not authenticated yet
                 try:
-                    # Try to get admin password from secrets with better error handling
+                    # Try to get admin password from secrets
                     admin_password = None
                     try:
                         admin_password = st.secrets["admin_password"]
                     except (KeyError, FileNotFoundError):
                         try:
-                            # Alternative access method
                             admin_password = st.secrets.get("admin_password", None)
                         except:
                             admin_password = None
@@ -99,26 +104,27 @@ def render_payroll_data_management():
                         if entered_pw == admin_password:
                             st.session_state.payroll_state['admin_mode'] = True
                             st.success("Admin mode activated")
+                            st.rerun()  # Refresh to update UI
                         elif entered_pw:
                             st.error("Incorrect password")
                             st.session_state.payroll_state['admin_mode'] = False
-                        else:
-                            st.session_state.payroll_state['admin_mode'] = False
                     else:
-                        # No password configured - require manual setup
-                        st.session_state.payroll_state['admin_mode'] = False
                         st.error("Admin password not configured")
-                        st.info("Please add 'admin_password = \"your_password\"' to secrets.toml file")
-                        with st.expander("Setup Instructions"):
-                            st.code('''# Create secrets.toml in your project root:
-admin_password = "your_secure_password_here"''')
+                        st.info("Please configure admin_password in Streamlit Cloud secrets")
+                        st.session_state.payroll_state['admin_mode'] = False
                 except Exception as e:
-                    # Fallback for local development
-                    st.session_state.payroll_state['admin_mode'] = False
                     st.error(f"Error reading secrets: {str(e)}")
-                    st.info("Please check your secrets.toml configuration")
-            else:
+                    st.session_state.payroll_state['admin_mode'] = False
+                    
+            elif not admin_enabled:
+                # User unchecked admin mode
                 st.session_state.payroll_state['admin_mode'] = False
+            elif admin_enabled and current_admin_mode:
+                # Already authenticated
+                st.success("Admin mode active")
+                if st.button("Logout Admin", key="payroll_admin_logout"):
+                    st.session_state.payroll_state['admin_mode'] = False
+                    st.rerun()
             
             # Update panel options based on admin mode
             if st.session_state.payroll_state['admin_mode']:
@@ -164,12 +170,11 @@ admin_password = "your_secure_password_here"''')
             st.sidebar.markdown("**Quick Tips:**")
             st.sidebar.info("1. Upload PA0008 & PA0014 files\n2. Process payroll data\n3. Validate results\n4. Analyze wage types")
             
-            # Show admin status in sidebar
+            # Show admin status in sidebar ONLY if authenticated
             st.sidebar.markdown("---")
-            if st.session_state.payroll_state['admin_mode']:
+            if st.session_state.payroll_state.get('admin_mode', False):
                 st.sidebar.markdown("**Admin Mode:** :red[ACTIVE]")
-            else:
-                st.sidebar.markdown("**Admin Mode:** Inactive")
+            # Don't show admin status if not authenticated
             
             # Show welcome message for first-time users
             if pa_files_loaded == 0:
