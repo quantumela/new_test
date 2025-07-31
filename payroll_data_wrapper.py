@@ -3,7 +3,7 @@ import sys
 import os
 
 def render_payroll_data_management():
-    """Render the Payroll Data Management System"""
+    """Render the Payroll Data Management System with full feature preservation"""
     try:
         # Add the new_payroll path to sys.path
         payroll_path = os.path.join(os.getcwd(), 'new_payroll')
@@ -22,51 +22,22 @@ def render_payroll_data_management():
         try:
             os.chdir(payroll_path)
             
-            # Instead of executing the entire app.py, let's import the panels directly
-            # and recreate the interface manually to avoid st.set_page_config conflicts
-            
-            # Import the payroll panel functions directly
+            # Import the payroll panel functions directly (exact from app.py)
             from payroll_main_panel import show_payroll_panel
             from payroll_statistics_panel import show_payroll_statistics_panel  
             from payroll_validation_panel import show_payroll_validation_panel
             from payroll_dashboard_panel import show_payroll_dashboard_panel
             from payroll_admin_panel import show_payroll_admin_panel
             
-            # Initialize session state for payroll system (note: payroll uses payroll_state)
+            # Initialize session state for payroll system (exact from app.py)
             if 'payroll_state' not in st.session_state:
                 st.session_state.payroll_state = {}
             
             payroll_state = st.session_state.payroll_state
             
-            # Recreate the payroll interface (based on the app.py structure)
+            # Recreate the payroll interface exactly as in app.py
             
-            # Custom CSS for better display
-            st.markdown("""
-                <style>
-                    .stDataFrame {
-                        width: 100% !important;
-                    }
-                    .stDataFrame div[data-testid="stHorizontalBlock"] {
-                        overflow-x: auto;
-                    }
-                    .stDataFrame table {
-                        width: 100%;
-                        font-size: 14px;
-                    }
-                    .stDataFrame th {
-                        font-weight: bold !important;
-                        background-color: #f0f2f6 !important;
-                    }
-                    .stDataFrame td {
-                        white-space: nowrap;
-                        max-width: 300px;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
-            
-            # Sidebar navigation
+            # Sidebar navigation with radio buttons (exact from app.py)
             st.sidebar.title("💰 Payroll Data Management")
             st.sidebar.markdown("---")
             
@@ -82,11 +53,11 @@ def render_payroll_data_management():
                 key="payroll_panel_selection"
             )
             
-            # Add quick stats in sidebar
+            # Add quick stats in sidebar (exact from app.py)
             st.sidebar.markdown("---")
             st.sidebar.markdown("**📋 Quick Status:**")
             
-            # Check data status
+            # Check data status (exact logic from app.py)
             pa_files_loaded = sum(1 for file_key in ['PA0008', 'PA0014'] 
                                  if payroll_state.get(f'source_{file_key.lower()}') is not None)
             output_generated = 'generated_payroll_files' in payroll_state and payroll_state['generated_payroll_files']
@@ -103,12 +74,12 @@ def render_payroll_data_management():
             st.sidebar.markdown("**💡 Quick Tips:**")
             st.sidebar.info("1. Upload PA0008 & PA0014 files\n2. Process payroll data\n3. Validate results\n4. Analyze wage types")
             
-            # Show selected panel with performance optimization
+            # Show selected panel with performance optimization (exact from app.py)
             try:
                 if panel == "🏠 Payroll Processing":
                     show_payroll_panel(payroll_state)
                 elif panel == "📊 Statistics & Analytics":
-                    # Add warning for large datasets
+                    # Add warning for large datasets (exact from app.py)
                     pa0008_data = payroll_state.get('source_pa0008')
                     if pa0008_data is not None and len(pa0008_data) > 10000:
                         st.warning("⚠️ Large dataset detected. Statistics panel may take a moment to load...")
@@ -124,10 +95,11 @@ def render_payroll_data_management():
                     show_payroll_admin_panel()
             
             except Exception as e:
+                # Exact error handling from app.py
                 st.error(f"❌ **Panel Error:** {str(e)}")
                 st.info("**What to do:** Try refreshing the page or switching to a different panel")
                 
-                # Show error details in expander
+                # Show error details in expander (exact from app.py)
                 with st.expander("🔍 Technical Details", expanded=False):
                     st.code(str(e))
                     if st.button("🔄 Reset Session", key="reset_payroll_session"):
@@ -136,7 +108,7 @@ def render_payroll_data_management():
                                 del st.session_state[key]
                         st.rerun()
             
-            # Footer
+            # Footer (exact from app.py)
             st.sidebar.markdown("---")
             st.sidebar.caption("💰 Payroll Data Management System v1.0")
             
