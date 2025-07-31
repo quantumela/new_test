@@ -9,216 +9,149 @@ def render_foundation_data_management():
     try:
         # Add the new_foundation path to sys.path
         foundation_path = os.path.join(os.getcwd(), 'new_foundation')
-        if foundation_path not in sys.path:
-            sys.path.insert(0, foundation_path)
-        
-        # Also add the panels path for foundation system
         panels_path = os.path.join(foundation_path, 'panels')
-        if panels_path not in sys.path:
-            sys.path.insert(0, panels_path)
         
-        # Save current working directory and change to foundation directory
-        original_cwd = os.getcwd()
+        # Add both paths to sys.path if they exist
+        paths_to_add = [foundation_path, panels_path]
         original_path = sys.path.copy()
         
+        for path in paths_to_add:
+            if os.path.exists(path) and path not in sys.path:
+                sys.path.insert(0, path)
+        
+        # Save current working directory
+        original_cwd = os.getcwd()
+        
         try:
-            os.chdir(foundation_path)
+            # Change to foundation directory if it exists
+            if os.path.exists(foundation_path):
+                os.chdir(foundation_path)
             
-            # Import the foundation panel functions directly with comprehensive fallbacks
-            # (preserving the exact import logic from main_app.py)
-            
-            from panels.hierarchy_panel_fixed import show_hierarchy_panel
-
-            # Import enhanced validation panel with fallback (exact logic from main_app.py)
+            # Import the foundation panel functions with better error handling
             try:
-                from panels.enhanced_validation_panel import show_validation_panel
+                from hierarchy_panel_fixed import show_hierarchy_panel
+            except ImportError:
+                try:
+                    from panels.hierarchy_panel_fixed import show_hierarchy_panel
+                except ImportError:
+                    def show_hierarchy_panel(state):
+                        st.error("Hierarchy panel not found")
+                        st.info("Please ensure hierarchy_panel_fixed.py exists in the panels folder")
+
+            # Import enhanced validation panel with fallback
+            try:
+                from enhanced_validation_panel import show_validation_panel
                 VALIDATION_ENHANCED = True
             except ImportError:
-                # Fallback to original validation panel
                 try:
-                    from panels.validation_panel_fixed import show_validation_panel
-                    VALIDATION_ENHANCED = False
-                    st.warning("Using basic validation panel. Enhanced version not found.")
+                    from panels.enhanced_validation_panel import show_validation_panel
+                    VALIDATION_ENHANCED = True
                 except ImportError:
-                    def show_validation_panel(state):
-                        st.title("Validation Panel")
-                        st.error("Validation panel not implemented yet")
-                        st.info("This panel is under development")
-                    VALIDATION_ENHANCED = False
+                    try:
+                        from validation_panel_fixed import show_validation_panel
+                        VALIDATION_ENHANCED = False
+                    except ImportError:
+                        try:
+                            from panels.validation_panel_fixed import show_validation_panel
+                            VALIDATION_ENHANCED = False
+                        except ImportError:
+                            def show_validation_panel(state):
+                                st.title("Validation Panel")
+                                st.error("Validation panel not implemented yet")
+                                st.info("This panel is under development")
+                            VALIDATION_ENHANCED = False
 
-            # Import admin panel with fallbacks (exact logic from main_app.py)
+            # Import admin panel with fallbacks
             try:
                 from config_manager import show_admin_panel
             except ImportError:
-                # Fallback if config_manager is in panels folder
                 try:
                     from panels.config_manager import show_admin_panel
                 except ImportError:
                     def show_admin_panel():
                         st.error("Admin panel not found. Please ensure config_manager.py exists.")
-                        st.info("Create config_manager.py or place it in the panels/ folder")
 
-            # Import enhanced statistics panel with fallbacks (exact logic from main_app.py)
+            # Import enhanced statistics panel with fallbacks
             try:
-                from panels.statistics_panel_enhanced import show_statistics_panel
+                from statistics_panel_enhanced import show_statistics_panel
                 STATISTICS_ENHANCED = True
             except ImportError:
-                # Fallback to original statistics panel
                 try:
-                    from panels.statistics_panel import show_statistics_panel
-                    STATISTICS_ENHANCED = False
-                    st.warning("Explore enhanced statistics to know your data!")
+                    from panels.statistics_panel_enhanced import show_statistics_panel
+                    STATISTICS_ENHANCED = True
                 except ImportError:
-                    def show_statistics_panel(state):
-                        st.title("Statistics Panel") 
-                        st.error("Statistics panel not implemented yet")
-                        st.info("This panel is under development")
-                    STATISTICS_ENHANCED = False
+                    try:
+                        from statistics_panel import show_statistics_panel
+                        STATISTICS_ENHANCED = False
+                    except ImportError:
+                        try:
+                            from panels.statistics_panel import show_statistics_panel
+                            STATISTICS_ENHANCED = False
+                        except ImportError:
+                            def show_statistics_panel(state):
+                                st.title("Statistics Panel") 
+                                st.error("Statistics panel not implemented yet")
+                            STATISTICS_ENHANCED = False
 
-            # Import health monitor (dashboard) panel with fallbacks (exact logic from main_app.py)
+            # Import dashboard panel with fallbacks
             try:
-                from panels.dashboard_panel_fixed import show_health_monitor_panel
+                from dashboard_panel_fixed import show_health_monitor_panel
                 HEALTH_MONITOR_ENHANCED = True
             except ImportError:
-                # Try regular dashboard panel
                 try:
-                    from panels.dashboard_panel import show_health_monitor_panel
-                    HEALTH_MONITOR_ENHANCED = False
+                    from panels.dashboard_panel_fixed import show_health_monitor_panel
+                    HEALTH_MONITOR_ENHANCED = True
                 except ImportError:
-                    def show_health_monitor_panel(state):
-                        st.title("Health Monitor Panel")
-                        st.error("Health Monitor panel not implemented yet") 
-                        st.info("This panel is under development")
-                    HEALTH_MONITOR_ENHANCED = False
+                    try:
+                        from dashboard_panel import show_health_monitor_panel
+                        HEALTH_MONITOR_ENHANCED = False
+                    except ImportError:
+                        try:
+                            from panels.dashboard_panel import show_health_monitor_panel
+                            HEALTH_MONITOR_ENHANCED = False
+                        except ImportError:
+                            def show_health_monitor_panel(state):
+                                st.title("Health Monitor Panel")
+                                st.error("Health Monitor panel not implemented yet")
+                            HEALTH_MONITOR_ENHANCED = False
 
-            # Exact CSS from main_app.py - preserve all styling
+            # CSS for professional display
             st.markdown("""
                 <style>
-                    .stDataFrame {
-                        width: 100% !important;
-                    }
-                    .stDataFrame div[data-testid="stHorizontalBlock"] {
-                        overflow-x: auto;
-                    }
-                    .stDataFrame table {
-                        width: 100%;
-                        font-size: 14px;
-                    }
-                    .stDataFrame th {
-                        font-weight: bold !important;
-                        background-color: #f0f2f6 !important;
-                    }
-                    .stDataFrame td {
-                        white-space: nowrap;
-                        max-width: 300px;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    }
-                    .css-1v0mbdj {
-                        max-width: 100%;
-                    }
-                    .block-container {
-                        padding-top: 2rem;
-                        padding-bottom: 2rem;
-                        max-width: 1200px;
-                    }
-                    .stButton>button {
-                        width: 100%;
-                    }
-                    .stDownloadButton>button {
-                        width: 100%;
-                    }
-                    .admin-section {
-                        background-color: #f8f9fa;
-                        padding: 1rem;
-                        border-radius: 0.5rem;
-                        border-left: 4px solid #ff4b4b;
-                        margin-bottom: 1rem;
-                    }
-                    .missing-panel {
-                        background-color: #fff3cd;
-                        border: 1px solid #ffeaa7;
-                        padding: 1rem;
-                        border-radius: 0.5rem;
-                        border-left: 4px solid #f39c12;
-                    }
-                    .enhanced-panel {
-                        background-color: #e8f5e8;
-                        border: 1px solid #90ee90;
-                        padding: 1rem;
-                        border-radius: 0.5rem;
-                        border-left: 4px solid #22c55e;
-                    }
-                    .statistics-status {
-                        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-                        color: white;
-                        padding: 10px;
-                        border-radius: 8px;
-                        text-align: center;
-                        margin: 10px 0;
-                        font-weight: bold;
-                    }
-                    .validation-status {
-                        background: linear-gradient(90deg, #ef4444, #f59e0b);
-                        color: white;
-                        padding: 10px;
-                        border-radius: 8px;
-                        text-align: center;
-                        margin: 10px 0;
-                        font-weight: bold;
-                    }
-                    .health-monitor-status {
-                        background: linear-gradient(90deg, #8b5cf6, #3b82f6);
-                        color: white;
-                        padding: 10px;
-                        border-radius: 8px;
-                        text-align: center;
-                        margin: 10px 0;
-                        font-weight: bold;
-                    }
+                    .stDataFrame { width: 100% !important; }
+                    .stDataFrame div[data-testid="stHorizontalBlock"] { overflow-x: auto; }
+                    .stDataFrame table { width: 100%; font-size: 14px; }
+                    .stDataFrame th { font-weight: bold !important; background-color: #f0f2f6 !important; }
+                    .stDataFrame td { white-space: nowrap; max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
+                    .css-1v0mbdj { max-width: 100%; }
+                    .block-container { padding-top: 2rem; padding-bottom: 2rem; max-width: 1200px; }
+                    .stButton>button { width: 100%; }
+                    .stDownloadButton>button { width: 100%; }
+                    .admin-section { background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #ff4b4b; margin-bottom: 1rem; }
+                    .enhanced-panel { background-color: #e8f5e8; border: 1px solid #90ee90; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #22c55e; }
+                    .status-enhanced { background: linear-gradient(90deg, #3b82f6, #8b5cf6); color: white; padding: 8px; border-radius: 6px; text-align: center; margin: 8px 0; font-weight: bold; font-size: 14px; }
+                    .status-basic { background: #f59e0b; color: white; padding: 8px; border-radius: 6px; text-align: center; margin: 8px 0; font-weight: bold; font-size: 14px; }
                 </style>
             """, unsafe_allow_html=True)
 
-            # Get default level names function (exact from main_app.py)
+            # Default level names function (exact from main_app.py)
             def get_default_level_names():
-                """Get improved default level names"""
                 return {
-                    1: "Level1_LegalEntity",
-                    2: "Level2_BusinessUnit", 
-                    3: "Level3_Division",
-                    4: "Level4_SubDivision",
-                    5: "Level5_Department",
-                    6: "Level6_SubDepartment",
-                    7: "Level7_Team",
-                    8: "Level8_Unit",
-                    9: "Level9_Unit", 
-                    10: "Level10_Unit",
-                    11: "Level11_Unit",
-                    12: "Level12_Unit",
-                    13: "Level13_Unit",
-                    14: "Level14_Unit",
-                    15: "Level15_Unit",
-                    16: "Level16_Unit",
-                    17: "Level17_Unit",
-                    18: "Level18_Unit",
-                    19: "Level19_Unit",
-                    20: "Level20_Unit"
+                    1: "Level1_LegalEntity", 2: "Level2_BusinessUnit", 3: "Level3_Division",
+                    4: "Level4_SubDivision", 5: "Level5_Department", 6: "Level6_SubDepartment",
+                    7: "Level7_Team", 8: "Level8_Unit", 9: "Level9_Unit", 10: "Level10_Unit",
+                    11: "Level11_Unit", 12: "Level12_Unit", 13: "Level13_Unit", 14: "Level14_Unit",
+                    15: "Level15_Unit", 16: "Level16_Unit", 17: "Level17_Unit", 18: "Level18_Unit",
+                    19: "Level19_Unit", 20: "Level20_Unit"
                 }
 
-            # Initialize session state with admin config and improved level names (exact from main_app.py)
+            # Initialize session state (exact from main_app.py)
             if 'state' not in st.session_state:
                 st.session_state.state = {
-                    'hrp1000': None,
-                    'hrp1001': None,
-                    'hierarchy': None,
-                    'level_names': get_default_level_names(),
-                    'transformations': [],
-                    'validation_results': None,
-                    'statistics': None,
-                    'pending_transforms': [],
-                    'admin_mode': False,
-                    'generated_output_files': {},  # For enhanced statistics
-                    'output_generation_metadata': {}  # Metadata for statistics
+                    'hrp1000': None, 'hrp1001': None, 'hierarchy': None,
+                    'level_names': get_default_level_names(), 'transformations': [],
+                    'validation_results': None, 'statistics': None, 'pending_transforms': [],
+                    'admin_mode': False, 'generated_output_files': {}, 'output_generation_metadata': {}
                 }
 
             # Main title
@@ -230,24 +163,24 @@ def render_foundation_data_management():
                 
                 # Show enhancement status for all panels (exact from main_app.py)
                 if STATISTICS_ENHANCED:
-                    st.markdown('<div class="statistics-status">Enhanced Statistics Active 🚀</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="status-enhanced">Enhanced Statistics Active</div>', unsafe_allow_html=True)
                     st.caption("End-to-end pipeline analysis available")
                 else:
-                    st.warning("Basic Statistics Mode")
+                    st.markdown('<div class="status-basic">Basic Statistics Mode</div>', unsafe_allow_html=True)
                     st.caption("Enhanced pipeline analysis not available")
                 
                 if VALIDATION_ENHANCED:
-                    st.markdown('<div class="validation-status">Enhanced Validation Active 🔍</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="status-enhanced">Enhanced Validation Active</div>', unsafe_allow_html=True)
                     st.caption("Complete pipeline validation available")
                 else:
-                    st.warning("Basic Validation Mode")
+                    st.markdown('<div class="status-basic">Basic Validation Mode</div>', unsafe_allow_html=True)
                     st.caption("Enhanced pipeline validation not available")
                 
                 if HEALTH_MONITOR_ENHANCED:
-                    st.markdown('<div class="health-monitor-status">Enhanced Health Monitor Active 🏥</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="status-enhanced">Enhanced Health Monitor Active</div>', unsafe_allow_html=True)
                     st.caption("System health monitoring available")
                 else:
-                    st.warning("Basic Health Monitor Mode")
+                    st.markdown('<div class="status-basic">Basic Health Monitor Mode</div>', unsafe_allow_html=True)
                     st.caption("System health monitoring not available")
                 
                 # Admin mode toggle with EXACT password logic from main_app.py
@@ -315,11 +248,11 @@ def render_foundation_data_management():
                     st.success("Output Files Generated")
                     st.caption(f"{len(level_files)} level + {len(association_files)} association files")
                     if STATISTICS_ENHANCED:
-                        st.info("🔍 Ready for pipeline analysis")
+                        st.info("Ready for pipeline analysis")
                     if VALIDATION_ENHANCED:
-                        st.info("🔍 Ready for complete validation")
+                        st.info("Ready for complete validation")
                     if HEALTH_MONITOR_ENHANCED:
-                        st.info("🏥 Ready for health monitoring")
+                        st.info("Ready for health monitoring")
                 else:
                     st.warning("Output Files Pending")
                     if STATISTICS_ENHANCED or VALIDATION_ENHANCED or HEALTH_MONITOR_ENHANCED:
@@ -333,12 +266,7 @@ def render_foundation_data_management():
                 else:
                     panel_options = ["Hierarchy", "Validation", "Statistics", "Health Monitor"]
                 
-                panel = st.radio(
-                    "Go to",
-                    panel_options,
-                    label_visibility="collapsed",
-                    key="foundation_panel_selection"
-                )
+                panel = st.radio("Go to", panel_options, label_visibility="collapsed", key="foundation_panel_selection")
 
             # Show welcome message for first-time users (exact from main_app.py)
             if not hrp1000_loaded and not hrp1001_loaded:
@@ -354,41 +282,41 @@ def render_foundation_data_management():
                 6. **Monitor**: Check system health in the Health Monitor
                 
                 **Enhanced Features:**
-                - **🔍 Enhanced Validation**: Complete pipeline validation with drill-down details
-                - **📊 Enhanced Statistics**: Complete pipeline analysis from source to target
-                - **🏥 Enhanced Health Monitor**: System health monitoring and output file analysis
-                - **🔧 Data Lineage**: Track transformations at column level
-                - **📋 Quality Metrics**: Before/after transformation analysis
+                - Enhanced Validation - Complete pipeline validation with drill-down details
+                - Enhanced Statistics - Complete pipeline analysis from source to target
+                - Enhanced Health Monitor - System health monitoring and output file analysis
+                - Data Lineage - Track transformations at column level
+                - Quality Metrics - Before/after transformation analysis
                 
                 **Improved Hierarchy Naming:**
-                - **Level1_LegalEntity**: Top-level legal entities
-                - **Level2_BusinessUnit**: Business units within legal entities
-                - **Level3_Division**: Divisions within business units
-                - **Level4_SubDivision**: Sub-divisions for detailed organization
-                - **Level5_Department**: Departments for functional grouping
-                - **Level6_SubDepartment**: Sub-departments for team organization
-                - **Level7_Team**: Team-level organizational units
+                - Level1_LegalEntity - Top-level legal entities
+                - Level2_BusinessUnit - Business units within legal entities
+                - Level3_Division - Divisions within business units
+                - Level4_SubDivision - Sub-divisions for detailed organization
+                - Level5_Department - Departments for functional grouping
+                - Level6_SubDepartment - Sub-departments for team organization
+                - Level7_Team - Team-level organizational units
                 
                 **Need Help?** 
-                - Use the **Admin panel** to configure templates and mappings
-                - Check the **Validation panel** for comprehensive data quality analysis
-                - Visit **Statistics** for comprehensive pipeline insights
-                - Monitor system health in the **Health Monitor**
+                - Use the Admin panel to configure templates and mappings
+                - Check the Validation panel for comprehensive data quality analysis
+                - Visit Statistics for comprehensive pipeline insights
+                - Monitor system health in the Health Monitor
                 """)
                 
                 # Show feature highlights (exact from main_app.py)
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    enhancement_text = "🚀 Enhanced" if VALIDATION_ENHANCED else "📋 Basic"
+                    enhancement_text = "Enhanced" if VALIDATION_ENHANCED else "Basic"
                     st.info(f"**{enhancement_text} Validation**\nComplete pipeline validation")
                 
                 with col2:
-                    enhancement_text = "🚀 Enhanced" if STATISTICS_ENHANCED else "📊 Basic"
+                    enhancement_text = "Enhanced" if STATISTICS_ENHANCED else "Basic"
                     st.info(f"**{enhancement_text} Statistics**\nEnd-to-end pipeline analysis")
                 
                 with col3:
-                    enhancement_text = "🚀 Enhanced" if HEALTH_MONITOR_ENHANCED else "🏥 Basic"
+                    enhancement_text = "Enhanced" if HEALTH_MONITOR_ENHANCED else "Basic"
                     st.info(f"**{enhancement_text} Health Monitor**\nSystem health monitoring")
 
             # Panel routing with enhanced error handling (exact logic from main_app.py)
@@ -502,8 +430,6 @@ def render_foundation_data_management():
                 elif panel == "Health Monitor":
                     if HEALTH_MONITOR_ENHANCED:
                         st.markdown("<div class='enhanced-panel'>", unsafe_allow_html=True)
-                    else:
-                        st.markdown("<div class='missing-panel'>", unsafe_allow_html=True)
                     
                     try:
                         show_health_monitor_panel(st.session_state.state)
@@ -519,8 +445,6 @@ def render_foundation_data_management():
                             st.code(f"Error Type: {type(e).__name__}\nError Message: {str(e)}")
                     
                     if HEALTH_MONITOR_ENHANCED:
-                        st.markdown("</div>", unsafe_allow_html=True)
-                    else:
                         st.markdown("</div>", unsafe_allow_html=True)
                     
             except Exception as e:
@@ -557,15 +481,9 @@ def render_foundation_data_management():
 
             with col1:
                 if st.session_state.state['admin_mode']:
-                    st.markdown(
-                        "<div style='text-align: center; color: #ff4b4b; font-weight: bold;'>ADMIN MODE ACTIVE</div>",
-                        unsafe_allow_html=True
-                    )
+                    st.markdown("<div style='text-align: center; color: #ff4b4b; font-weight: bold;'>ADMIN MODE ACTIVE</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(
-                        "<div style='text-align: center; color: #6b7280;'>User Mode</div>",
-                        unsafe_allow_html=True
-                    )
+                    st.markdown("<div style='text-align: center; color: #6b7280;'>User Mode</div>", unsafe_allow_html=True)
 
             with col2:
                 # Show enhancement status
@@ -578,33 +496,18 @@ def render_foundation_data_management():
                     enhancements.append("Health Monitor")
                 
                 if enhancements:
-                    st.markdown(
-                        f"<div style='text-align: center; color: #22c55e; font-weight: bold;'>ENHANCED: {', '.join(enhancements)}</div>",
-                        unsafe_allow_html=True
-                    )
+                    st.markdown(f"<div style='text-align: center; color: #22c55e; font-weight: bold;'>ENHANCED: {', '.join(enhancements)}</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(
-                        "<div style='text-align: center; color: #f59e0b;'>Basic Mode</div>",
-                        unsafe_allow_html=True
-                    )
+                    st.markdown("<div style='text-align: center; color: #f59e0b;'>Basic Mode</div>", unsafe_allow_html=True)
 
             with col3:
                 # Show current pipeline status
                 if output_generated:
-                    st.markdown(
-                        "<div style='text-align: center; color: #3b82f6; font-weight: bold;'>PIPELINE READY</div>",
-                        unsafe_allow_html=True
-                    )
+                    st.markdown("<div style='text-align: center; color: #3b82f6; font-weight: bold;'>PIPELINE READY</div>", unsafe_allow_html=True)
                 elif hierarchy_processed:
-                    st.markdown(
-                        "<div style='text-align: center; color: #f59e0b;'>GENERATE FILES</div>",
-                        unsafe_allow_html=True
-                    )
+                    st.markdown("<div style='text-align: center; color: #f59e0b;'>GENERATE FILES</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(
-                        "<div style='text-align: center; color: #6b7280;'>LOAD DATA</div>",
-                        unsafe_allow_html=True
-                    )
+                    st.markdown("<div style='text-align: center; color: #6b7280;'>LOAD DATA</div>", unsafe_allow_html=True)
 
             # Quick stats in sidebar footer (exact from main_app.py)
             with st.sidebar:
@@ -614,13 +517,13 @@ def render_foundation_data_management():
                 # Show quick metrics
                 if hrp1000_loaded and hrp1001_loaded:
                     source_total = len(st.session_state.state['source_hrp1000']) + len(st.session_state.state['source_hrp1001'])
-                    st.caption(f"📊 Source: {source_total:,} total records")
+                    st.caption(f"Source: {source_total:,} total records")
                 
                 if output_generated:
                     metadata = st.session_state.state.get('output_generation_metadata', {})
                     if metadata:
                         total_files = metadata.get('total_level_files', 0) + metadata.get('total_association_files', 0)
-                        st.caption(f"📁 Output: {total_files} files generated")
+                        st.caption(f"Output: {total_files} files generated")
                         
                         # Show generation time
                         gen_time = metadata.get('generated_at', '')
@@ -634,14 +537,14 @@ def render_foundation_data_management():
                                     time_ago = f"{time_diff.seconds // 60}m ago"
                                 else:
                                     time_ago = f"{time_diff.seconds // 3600}h ago"
-                                st.caption(f"⏱️ Generated: {time_ago}")
+                                st.caption(f"Generated: {time_ago}")
                             except:
-                                st.caption(f"⏱️ Generated: Recently")
+                                st.caption(f"Generated: Recently")
                 
                 # Show enhancement status
                 enhancement_count = sum([STATISTICS_ENHANCED, VALIDATION_ENHANCED, HEALTH_MONITOR_ENHANCED])
                 if enhancement_count > 0:
-                    st.caption(f"🚀 {enhancement_count}/3 panels enhanced!")
+                    st.caption(f"{enhancement_count}/3 panels enhanced!")
                 
                 # Show level names preview
                 if hierarchy_processed:
@@ -660,7 +563,7 @@ def render_foundation_data_management():
             sys.path = original_path
         
     except ImportError as e:
-        st.error(f"❌ **Foundation System Import Error:** {str(e)}")
+        st.error(f"Foundation System Import Error: {str(e)}")
         st.info("**Troubleshooting:**")
         st.write("1. Ensure `new_foundation/main_app.py` exists")
         st.write("2. Check that all foundation panel files are in `new_foundation/panels/`")
@@ -685,16 +588,16 @@ def render_foundation_data_management():
             else:
                 st.error(f"❌ {panel}")
         
-        with st.expander("🔍 Technical Details"):
+        with st.expander("Technical Details"):
             st.code(f"Import Error: {str(e)}")
             st.write(f"**Looking for foundation system at:** `{foundation_path}`")
             st.write(f"**Looking for panels at:** `{panels_path}`")
     
     except Exception as e:
-        st.error(f"❌ **Foundation System Error:** {str(e)}")
+        st.error(f"Foundation System Error: {str(e)}")
         st.info("Please check the foundation system configuration and try again.")
         
-        with st.expander("🔍 Technical Details"):
+        with st.expander("Technical Details"):
             st.code(f"Error Type: {type(e).__name__}\nError Message: {str(e)}")
 
 def get_foundation_system_status():
@@ -735,13 +638,13 @@ def get_foundation_system_status():
         }
         
         if output_generated:
-            status_msg = "✅ Foundation system ready - Output files generated"
+            status_msg = "Foundation system ready - Output files generated"
         elif hierarchy_processed:
-            status_msg = "🔄 Foundation system ready - Generate output files"
+            status_msg = "Foundation system ready - Generate output files"
         elif hrp1000_loaded and hrp1001_loaded:
-            status_msg = "📊 Foundation system ready - Process hierarchy"
+            status_msg = "Foundation system ready - Process hierarchy"
         else:
-            status_msg = "📁 Foundation system ready - Load data files"
+            status_msg = "Foundation system ready - Load data files"
         
         return {
             'available': True,
