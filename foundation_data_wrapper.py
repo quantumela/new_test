@@ -183,19 +183,24 @@ def render_foundation_data_management():
                     st.markdown('<div class="status-basic">Basic Health Monitor Mode</div>', unsafe_allow_html=True)
                     st.caption("System health monitoring not available")
                 
-                # Admin mode toggle with EXACT password logic from main_app.py
-                admin_enabled = st.checkbox("Admin Mode", help="Enable configuration options", key="foundation_admin_mode")
+                # Admin mode toggle with improved UX
+                current_admin_mode = st.session_state.state.get('admin_mode', False)
                 
-                if admin_enabled:
-                    # Check if running locally or if admin password is configured (EXACT logic from main_app.py)
+                # Show checkbox as checked if already authenticated
+                admin_enabled = st.checkbox("Admin Mode", 
+                                          value=current_admin_mode, 
+                                          help="Enable configuration options", 
+                                          key="foundation_admin_mode")
+                
+                if admin_enabled and not current_admin_mode:
+                    # User wants admin mode but not authenticated yet
                     try:
-                        # Try to get admin password from secrets with better error handling
+                        # Try to get admin password from secrets
                         admin_password = None
                         try:
                             admin_password = st.secrets["admin_password"]
                         except (KeyError, FileNotFoundError):
                             try:
-                                # Alternative access method
                                 admin_password = st.secrets.get("admin_password", None)
                             except:
                                 admin_password = None
@@ -205,26 +210,27 @@ def render_foundation_data_management():
                             if entered_pw == admin_password:
                                 st.session_state.state['admin_mode'] = True
                                 st.success("Admin mode activated")
+                                st.rerun()  # Refresh to update UI
                             elif entered_pw:
                                 st.error("Incorrect password")
                                 st.session_state.state['admin_mode'] = False
-                            else:
-                                st.session_state.state['admin_mode'] = False
                         else:
-                            # No password configured - require manual setup
-                            st.session_state.state['admin_mode'] = False
                             st.error("Admin password not configured")
-                            st.info("Please add 'admin_password = \"your_password\"' to secrets.toml file")
-                            with st.expander("Setup Instructions"):
-                                st.code('''# Create secrets.toml in your project root:
-admin_password = "your_secure_password_here"''')
+                            st.info("Please configure admin_password in Streamlit Cloud secrets")
+                            st.session_state.state['admin_mode'] = False
                     except Exception as e:
-                        # Fallback for local development
-                        st.session_state.state['admin_mode'] = False
                         st.error(f"Error reading secrets: {str(e)}")
-                        st.info("Please check your secrets.toml configuration")
-                else:
+                        st.session_state.state['admin_mode'] = False
+                        
+                elif not admin_enabled:
+                    # User unchecked admin mode
                     st.session_state.state['admin_mode'] = False
+                elif admin_enabled and current_admin_mode:
+                    # Already authenticated
+                    st.success("Admin mode active")
+                    if st.button("Logout Admin", key="foundation_admin_logout"):
+                        st.session_state.state['admin_mode'] = False
+                        st.rerun()
                 
                 # Show current data status (exact from main_app.py)
                 st.divider()
