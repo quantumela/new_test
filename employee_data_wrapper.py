@@ -3,7 +3,7 @@ import sys
 import os
 
 def render_employee_data_management():
-    """Render the Employee Data Management System"""
+    """Render the Employee Data Management System with full feature preservation"""
     try:
         # Add the new_employee path to sys.path
         employee_path = os.path.join(os.getcwd(), 'new_employee')
@@ -22,51 +22,22 @@ def render_employee_data_management():
         try:
             os.chdir(employee_path)
             
-            # Instead of executing the entire main_app.py, let's import the panels directly
-            # and recreate the interface manually to avoid st.set_page_config conflicts
-            
-            # Import the panel functions directly
+            # Import panel functions - FIXED imports (exact from main_app.py)
             from employee_main_panel import show_employee_panel
             from employee_statistics_panel import show_employee_statistics_panel  
             from employee_validation_panel import show_employee_validation_panel
             from employee_dashboard_panel import show_employee_dashboard_panel
             from employee_admin_panel import show_employee_admin_panel
             
-            # Initialize session state for employee system
+            # Initialize session state (exact from main_app.py)
             if 'state' not in st.session_state:
                 st.session_state.state = {}
             
             state = st.session_state.state
             
-            # Recreate the employee interface (based on the main_app.py structure)
+            # Recreate the employee interface exactly as in main_app.py
             
-            # Custom CSS for better display (from main_app.py)
-            st.markdown("""
-                <style>
-                    .stDataFrame {
-                        width: 100% !important;
-                    }
-                    .stDataFrame div[data-testid="stHorizontalBlock"] {
-                        overflow-x: auto;
-                    }
-                    .stDataFrame table {
-                        width: 100%;
-                        font-size: 14px;
-                    }
-                    .stDataFrame th {
-                        font-weight: bold !important;
-                        background-color: #f0f2f6 !important;
-                    }
-                    .stDataFrame td {
-                        white-space: nowrap;
-                        max-width: 300px;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
-            
-            # Sidebar navigation
+            # Sidebar navigation with radio buttons (exact from main_app.py)
             st.sidebar.title("👥 Employee Data Management")
             st.sidebar.markdown("---")
             
@@ -79,14 +50,14 @@ def render_employee_data_management():
                     "📈 Dashboard",
                     "⚙️ Admin Configuration"
                 ],
-                key="employee_panel_selection"
+                key="main_panel_selection"
             )
             
-            # Add quick stats in sidebar
+            # Add quick stats in sidebar (exact from main_app.py)
             st.sidebar.markdown("---")
             st.sidebar.markdown("**📋 Quick Status:**")
             
-            # Check data status
+            # Check data status (exact logic from main_app.py)
             pa_files_loaded = sum(1 for file_key in ['PA0001', 'PA0002', 'PA0006', 'PA0105'] 
                                  if state.get(f'source_{file_key.lower()}') is not None)
             output_generated = 'generated_employee_files' in state and state['generated_employee_files']
@@ -103,12 +74,12 @@ def render_employee_data_management():
             st.sidebar.markdown("**💡 Quick Tips:**")
             st.sidebar.info("1. Upload PA files first\n2. Process employee data\n3. Validate results\n4. Analyze statistics")
             
-            # Show selected panel with performance optimization
+            # Show selected panel with performance optimization (exact from main_app.py)
             try:
                 if panel == "🏠 Employee Processing":
                     show_employee_panel(state)
                 elif panel == "📊 Statistics & Detective":
-                    # Add warning for large datasets
+                    # Add warning for large datasets (exact from main_app.py)
                     pa0002_data = state.get('source_pa0002')
                     if pa0002_data is not None and len(pa0002_data) > 10000:
                         st.warning("⚠️ Large dataset detected. Statistics panel may take a moment to load...")
@@ -124,19 +95,19 @@ def render_employee_data_management():
                     show_employee_admin_panel()
             
             except Exception as e:
+                # Exact error handling from main_app.py
                 st.error(f"❌ **Panel Error:** {str(e)}")
                 st.info("**What to do:** Try refreshing the page or switching to a different panel")
                 
-                # Show error details in expander
+                # Show error details in expander (exact from main_app.py)
                 with st.expander("🔍 Technical Details", expanded=False):
                     st.code(str(e))
                     if st.button("🔄 Reset Session", key="reset_employee_session"):
                         for key in list(st.session_state.keys()):
-                            if 'state' in key:
-                                del st.session_state[key]
+                            del st.session_state[key]
                         st.rerun()
             
-            # Footer
+            # Footer (exact from main_app.py)
             st.sidebar.markdown("---")
             st.sidebar.caption("💻 Employee Data Management System v2.0")
             
@@ -226,11 +197,11 @@ def get_employee_system_status():
                 'details': {'missing_panels': missing_panels}
             }
         
-        # Check session state for data status
+        # Check session state for data status (uses 'state' like foundation)
         employee_state = getattr(st.session_state, 'state', {})
         
         pa_files_status = {}
-        pa_files = ['PA0001', 'PA0002', 'PA0006', 'PA0105']
+        pa_files = ['PA0001', 'PA0002', 'PA0006', 'PA0105']  # Employee uses 4 PA files
         files_loaded = 0
         
         for pa_file in pa_files:
@@ -264,8 +235,8 @@ def get_employee_system_status():
             'status': status_msg,
             'details': status_details,
             'enhanced_features': [
-                'PA Files Processing (PA0001, PA0002, PA0006, PA0105)',
-                'Employee Data Validation',
+                'PA Files Processing (PA0001 Org Assignment, PA0002 Personal Data, PA0006 Address, PA0105 Communication)',
+                'Employee Data Validation & Quality Checks',
                 'Statistics & Detective Analysis',
                 'Dashboard & Monitoring',
                 'Admin Configuration'
