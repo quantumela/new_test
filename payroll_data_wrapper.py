@@ -44,9 +44,13 @@ def render_payroll_data_management():
                     st.info("Please ensure all payroll panel files exist in new_payroll/payroll_panels/")
                     return
             
-            # Initialize session state for payroll system (exact from app.py)
+            # Initialize session state for payroll system with admin_mode (exact from app.py)
             if 'payroll_state' not in st.session_state:
-                st.session_state.payroll_state = {}
+                st.session_state.payroll_state = {'admin_mode': False}
+            
+            # Ensure admin_mode key exists
+            if 'admin_mode' not in st.session_state.payroll_state:
+                st.session_state.payroll_state['admin_mode'] = False
             
             payroll_state = st.session_state.payroll_state
             
@@ -62,6 +66,7 @@ def render_payroll_data_management():
                     .block-container { padding-top: 2rem; padding-bottom: 2rem; max-width: 1200px; }
                     .stButton>button { width: 100%; }
                     .stDownloadButton>button { width: 100%; }
+                    .admin-section { background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #ff4b4b; margin-bottom: 1rem; }
                 </style>
             """, unsafe_allow_html=True)
             
@@ -72,15 +77,55 @@ def render_payroll_data_management():
             st.sidebar.title("Payroll Data Management")
             st.sidebar.markdown("---")
             
-            panel = st.sidebar.radio(
-                "**Choose Panel:**",
-                [
+            # Admin mode toggle with EXACT password logic (same as Foundation)
+            admin_enabled = st.checkbox("Admin Mode", help="Enable configuration options", key="payroll_admin_mode")
+            
+            if admin_enabled:
+                # Check if running locally or if admin password is configured (EXACT logic from Foundation)
+                try:
+                    # Try to get admin password from secrets
+                    admin_password = st.secrets.get("admin_password", "")
+                    if admin_password:
+                        entered_pw = st.text_input("Admin Password", type="password", key="payroll_admin_password")
+                        if entered_pw == admin_password:
+                            st.session_state.payroll_state['admin_mode'] = True
+                            st.success("Admin mode activated")
+                        elif entered_pw:
+                            st.error("Incorrect password")
+                            st.session_state.payroll_state['admin_mode'] = False
+                        else:
+                            st.session_state.payroll_state['admin_mode'] = False
+                    else:
+                        # No password configured - allow admin mode (development)
+                        st.session_state.payroll_state['admin_mode'] = True
+                        st.info("Admin mode (no password configured)")
+                except Exception:
+                    # Fallback for local development
+                    st.session_state.payroll_state['admin_mode'] = True
+                    st.info("Admin mode (local development)")
+            else:
+                st.session_state.payroll_state['admin_mode'] = False
+            
+            # Update panel options based on admin mode
+            if st.session_state.payroll_state['admin_mode']:
+                panel_options = [
                     "Payroll Processing",
                     "Statistics & Analytics", 
                     "Data Validation",
                     "Dashboard",
                     "Admin Configuration"
-                ],
+                ]
+            else:
+                panel_options = [
+                    "Payroll Processing",
+                    "Statistics & Analytics", 
+                    "Data Validation",
+                    "Dashboard"
+                ]
+            
+            panel = st.sidebar.radio(
+                "**Choose Panel:**",
+                panel_options,
                 key="payroll_panel_selection"
             )
             
@@ -105,6 +150,13 @@ def render_payroll_data_management():
             st.sidebar.markdown("**Quick Tips:**")
             st.sidebar.info("1. Upload PA0008 & PA0014 files\n2. Process payroll data\n3. Validate results\n4. Analyze wage types")
             
+            # Show admin status in sidebar
+            st.sidebar.markdown("---")
+            if st.session_state.payroll_state['admin_mode']:
+                st.sidebar.markdown("**Admin Mode:** :red[ACTIVE]")
+            else:
+                st.sidebar.markdown("**Admin Mode:** Inactive")
+            
             # Show welcome message for first-time users
             if pa_files_loaded == 0:
                 st.markdown("""
@@ -125,7 +177,7 @@ def render_payroll_data_management():
                 - Wage type mapping and validation
                 - Payroll statistics and analytics
                 - Dashboard monitoring and reporting
-                - Admin configuration for wage types
+                - Admin configuration for wage types (password protected)
                 """)
             
             # Show selected panel with performance optimization (exact from app.py)
@@ -146,7 +198,14 @@ def render_payroll_data_management():
                 elif panel == "Dashboard":
                     show_payroll_dashboard_panel(payroll_state)
                 elif panel == "Admin Configuration":
-                    show_payroll_admin_panel()
+                    if st.session_state.payroll_state['admin_mode']:
+                        st.markdown("<div class='admin-section'>", unsafe_allow_html=True)
+                        st.header("Payroll Admin Configuration Center")
+                        show_payroll_admin_panel()
+                        st.markdown("</div>", unsafe_allow_html=True)
+                    else:
+                        st.error("Admin access required")
+                        st.info("Please enable Admin Mode and enter the correct password to access this panel.")
             
             except Exception as e:
                 # Exact error handling from app.py
@@ -296,7 +355,7 @@ def get_payroll_system_status():
                 'Wage Type Mapping & Validation',
                 'Payroll Statistics & Analytics',
                 'Dashboard & Monitoring', 
-                'Admin Configuration'
+                'Admin Configuration (Password Protected)'
             ]
         }
         
