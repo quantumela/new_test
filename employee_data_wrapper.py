@@ -170,12 +170,11 @@ def render_employee_data_management():
             st.sidebar.markdown("**Quick Tips:**")
             st.sidebar.info("1. Upload PA files first\n2. Process employee data\n3. Validate results\n4. Analyze statistics")
             
-            # Show admin status in sidebar
+            # Show admin status in sidebar ONLY if authenticated
             st.sidebar.markdown("---")
-            if st.session_state.state['admin_mode']:
+            if st.session_state.state.get('admin_mode', False):
                 st.sidebar.markdown("**Admin Mode:** :red[ACTIVE]")
-            else:
-                st.sidebar.markdown("**Admin Mode:** Inactive")
+            # Don't show admin status if not authenticated
             
             # Show welcome message for first-time users
             if pa_files_loaded == 0:
