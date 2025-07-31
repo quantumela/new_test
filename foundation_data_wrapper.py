@@ -534,11 +534,10 @@ def render_foundation_data_management():
                 st.divider()
                 st.caption("**System Status**")
                 
-                # Show admin status
-                if st.session_state.state['admin_mode']:
+                # Show admin status ONLY if authenticated
+                if st.session_state.state.get('admin_mode', False):
                     st.caption("**Admin:** :red[ACTIVE]")
-                else:
-                    st.caption("**Admin:** Inactive")
+                # Don't show admin status if not authenticated
                 
                 # Show quick metrics
                 if hrp1000_loaded and hrp1001_loaded:
