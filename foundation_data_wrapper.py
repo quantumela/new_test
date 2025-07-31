@@ -3,44 +3,70 @@ import sys
 import os
 
 def render_foundation_data_management():
-    """Render the complete Foundation Data Management System"""
+    """Render the Foundation Data Management System"""
     try:
-        # Add the new_foundation path to sys.path if not already there
+        # Add the new_foundation path to sys.path
         foundation_path = os.path.join(os.getcwd(), 'new_foundation')
         if foundation_path not in sys.path:
             sys.path.insert(0, foundation_path)
         
-        # Import and run the foundation main app
-        from main_app import *  # This will execute the foundation main app
+        # Save current working directory and change to foundation directory
+        original_cwd = os.getcwd()
+        original_path = sys.path.copy()
         
-    except ImportError as e:
-        st.error(f"❌ **Foundation System Import Error:** {str(e)}")
+        try:
+            os.chdir(foundation_path)
+            
+            # Read the main_app.py file content
+            main_app_path = os.path.join(foundation_path, 'main_app.py')
+            if not os.path.exists(main_app_path):
+                st.error("❌ Foundation main_app.py not found")
+                return
+            
+            with open(main_app_path, 'r', encoding='utf-8') as f:
+                app_content = f.read()
+            
+            # Remove or comment out st.set_page_config lines to avoid conflicts
+            lines = app_content.split('\n')
+            modified_lines = []
+            
+            for line in lines:
+                if 'st.set_page_config' in line and not line.strip().startswith('#'):
+                    # Comment out the st.set_page_config line
+                    modified_lines.append('# ' + line + '  # Commented out by wrapper')
+                else:
+                    modified_lines.append(line)
+            
+            modified_content = '\n'.join(modified_lines)
+            
+            # Create a local namespace for execution
+            local_namespace = {
+                '__name__': '__main__',
+                '__file__': main_app_path,
+                'st': st,
+                'sys': sys,
+                'os': os,
+                'pd': None  # Will be imported in the executed code if needed
+            }
+            
+            # Execute the modified content
+            exec(modified_content, local_namespace)
+            
+        finally:
+            # Always restore original working directory and path
+            os.chdir(original_cwd)
+            sys.path = original_path
+        
+    except Exception as e:
+        st.error(f"❌ **Foundation System Error:** {str(e)}")
         st.info("**Troubleshooting:**")
         st.write("1. Ensure `new_foundation/main_app.py` exists")
         st.write("2. Check that all foundation panel files are in `new_foundation/panels/`")
         st.write("3. Verify the foundation system structure")
         
         with st.expander("🔍 Technical Details"):
-            st.code(f"Import Error: {str(e)}")
-            st.write(f"**Looking for foundation system at:** `{foundation_path}`")
-            
-            # Check if directory exists
-            if os.path.exists(foundation_path):
-                st.success("✅ Foundation directory exists")
-                main_app_path = os.path.join(foundation_path, 'main_app.py')
-                if os.path.exists(main_app_path):
-                    st.success("✅ main_app.py found")
-                else:
-                    st.error("❌ main_app.py not found")
-            else:
-                st.error("❌ Foundation directory not found")
-    
-    except Exception as e:
-        st.error(f"❌ **Foundation System Error:** {str(e)}")
-        st.info("Please check the foundation system configuration and try again.")
-        
-        with st.expander("🔍 Technical Details"):
             st.code(f"Error Type: {type(e).__name__}\nError Message: {str(e)}")
+            st.write(f"**Looking for foundation system at:** `{foundation_path}`")
 
 def get_foundation_system_status():
     """Get the status of the Foundation Data Management System"""
