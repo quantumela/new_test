@@ -44,9 +44,13 @@ def render_employee_data_management():
                     st.info("Please ensure all employee panel files exist in new_employee/panels/")
                     return
             
-            # Initialize session state (exact from main_app.py)
+            # Initialize session state with admin_mode (exact from main_app.py)
             if 'state' not in st.session_state:
-                st.session_state.state = {}
+                st.session_state.state = {'admin_mode': False}
+            
+            # Ensure admin_mode key exists
+            if 'admin_mode' not in st.session_state.state:
+                st.session_state.state['admin_mode'] = False
             
             state = st.session_state.state
             
@@ -62,6 +66,7 @@ def render_employee_data_management():
                     .block-container { padding-top: 2rem; padding-bottom: 2rem; max-width: 1200px; }
                     .stButton>button { width: 100%; }
                     .stDownloadButton>button { width: 100%; }
+                    .admin-section { background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #ff4b4b; margin-bottom: 1rem; }
                 </style>
             """, unsafe_allow_html=True)
             
@@ -72,15 +77,55 @@ def render_employee_data_management():
             st.sidebar.title("Employee Data Management")
             st.sidebar.markdown("---")
             
-            panel = st.sidebar.radio(
-                "**Choose Panel:**",
-                [
+            # Admin mode toggle with EXACT password logic (same as Foundation)
+            admin_enabled = st.checkbox("Admin Mode", help="Enable configuration options", key="employee_admin_mode")
+            
+            if admin_enabled:
+                # Check if running locally or if admin password is configured (EXACT logic from Foundation)
+                try:
+                    # Try to get admin password from secrets
+                    admin_password = st.secrets.get("admin_password", "")
+                    if admin_password:
+                        entered_pw = st.text_input("Admin Password", type="password", key="employee_admin_password")
+                        if entered_pw == admin_password:
+                            st.session_state.state['admin_mode'] = True
+                            st.success("Admin mode activated")
+                        elif entered_pw:
+                            st.error("Incorrect password")
+                            st.session_state.state['admin_mode'] = False
+                        else:
+                            st.session_state.state['admin_mode'] = False
+                    else:
+                        # No password configured - allow admin mode (development)
+                        st.session_state.state['admin_mode'] = True
+                        st.info("Admin mode (no password configured)")
+                except Exception:
+                    # Fallback for local development
+                    st.session_state.state['admin_mode'] = True
+                    st.info("Admin mode (local development)")
+            else:
+                st.session_state.state['admin_mode'] = False
+            
+            # Update panel options based on admin mode
+            if st.session_state.state['admin_mode']:
+                panel_options = [
                     "Employee Processing",
                     "Statistics & Detective", 
                     "Data Validation",
                     "Dashboard",
                     "Admin Configuration"
-                ],
+                ]
+            else:
+                panel_options = [
+                    "Employee Processing",
+                    "Statistics & Detective", 
+                    "Data Validation",
+                    "Dashboard"
+                ]
+            
+            panel = st.sidebar.radio(
+                "**Choose Panel:**",
+                panel_options,
                 key="employee_panel_selection"
             )
             
@@ -105,6 +150,13 @@ def render_employee_data_management():
             st.sidebar.markdown("**Quick Tips:**")
             st.sidebar.info("1. Upload PA files first\n2. Process employee data\n3. Validate results\n4. Analyze statistics")
             
+            # Show admin status in sidebar
+            st.sidebar.markdown("---")
+            if st.session_state.state['admin_mode']:
+                st.sidebar.markdown("**Admin Mode:** :red[ACTIVE]")
+            else:
+                st.sidebar.markdown("**Admin Mode:** Inactive")
+            
             # Show welcome message for first-time users
             if pa_files_loaded == 0:
                 st.markdown("""
@@ -127,7 +179,7 @@ def render_employee_data_management():
                 - Employee data validation and quality checks
                 - Statistics and detective analysis
                 - Dashboard monitoring and reporting
-                - Admin configuration options
+                - Admin configuration options (password protected)
                 """)
             
             # Show selected panel with performance optimization (exact from main_app.py)
@@ -148,7 +200,14 @@ def render_employee_data_management():
                 elif panel == "Dashboard":
                     show_employee_dashboard_panel(state)
                 elif panel == "Admin Configuration":
-                    show_employee_admin_panel()
+                    if st.session_state.state['admin_mode']:
+                        st.markdown("<div class='admin-section'>", unsafe_allow_html=True)
+                        st.header("Employee Admin Configuration Center")
+                        show_employee_admin_panel()
+                        st.markdown("</div>", unsafe_allow_html=True)
+                    else:
+                        st.error("Admin access required")
+                        st.info("Please enable Admin Mode and enter the correct password to access this panel.")
             
             except Exception as e:
                 # Exact error handling from main_app.py
@@ -295,7 +354,7 @@ def get_employee_system_status():
                 'Employee Data Validation & Quality Checks',
                 'Statistics & Detective Analysis',
                 'Dashboard & Monitoring',
-                'Admin Configuration'
+                'Admin Configuration (Password Protected)'
             ]
         }
         
