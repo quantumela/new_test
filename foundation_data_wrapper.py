@@ -189,9 +189,18 @@ def render_foundation_data_management():
                 if admin_enabled:
                     # Check if running locally or if admin password is configured (EXACT logic from main_app.py)
                     try:
-                        # Try to get admin password from secrets
-                        admin_password = st.secrets.get("admin_password", "")
-                        if admin_password:
+                        # Try to get admin password from secrets with better error handling
+                        admin_password = None
+                        try:
+                            admin_password = st.secrets["admin_password"]
+                        except (KeyError, FileNotFoundError):
+                            try:
+                                # Alternative access method
+                                admin_password = st.secrets.get("admin_password", None)
+                            except:
+                                admin_password = None
+                        
+                        if admin_password and admin_password.strip():
                             entered_pw = st.text_input("Admin Password", type="password", key="foundation_admin_password")
                             if entered_pw == admin_password:
                                 st.session_state.state['admin_mode'] = True
@@ -202,13 +211,18 @@ def render_foundation_data_management():
                             else:
                                 st.session_state.state['admin_mode'] = False
                         else:
-                            # No password configured - allow admin mode (development)
-                            st.session_state.state['admin_mode'] = True
-                            st.info("Admin mode (no password configured)")
-                    except Exception:
+                            # No password configured - require manual setup
+                            st.session_state.state['admin_mode'] = False
+                            st.error("Admin password not configured")
+                            st.info("Please add 'admin_password = \"your_password\"' to secrets.toml file")
+                            with st.expander("Setup Instructions"):
+                                st.code('''# Create secrets.toml in your project root:
+admin_password = "your_secure_password_here"''')
+                    except Exception as e:
                         # Fallback for local development
-                        st.session_state.state['admin_mode'] = True
-                        st.info("Admin mode (local development)")
+                        st.session_state.state['admin_mode'] = False
+                        st.error(f"Error reading secrets: {str(e)}")
+                        st.info("Please check your secrets.toml configuration")
                 else:
                     st.session_state.state['admin_mode'] = False
                 
@@ -509,10 +523,16 @@ def render_foundation_data_management():
                 else:
                     st.markdown("<div style='text-align: center; color: #6b7280;'>LOAD DATA</div>", unsafe_allow_html=True)
 
-            # Quick stats in sidebar footer (exact from main_app.py)
+                            # Quick stats in sidebar footer (exact from main_app.py)
             with st.sidebar:
                 st.divider()
                 st.caption("**System Status**")
+                
+                # Show admin status
+                if st.session_state.state['admin_mode']:
+                    st.caption("**Admin:** :red[ACTIVE]")
+                else:
+                    st.caption("**Admin:** Inactive")
                 
                 # Show quick metrics
                 if hrp1000_loaded and hrp1001_loaded:
